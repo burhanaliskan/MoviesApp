@@ -8,10 +8,10 @@
 import UIKit
 
 class SearchBarTableViewCell: UITableViewCell {
-
+    
     @IBOutlet weak var movieTitleLabel: UILabel!
     
-
+    //MARK: - Configure Cell
     func configure(with movieTitle: String) {
         movieTitleLabel.text = movieTitle
     }

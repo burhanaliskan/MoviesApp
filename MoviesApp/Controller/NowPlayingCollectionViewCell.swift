@@ -6,28 +6,16 @@
 //
 
 import UIKit
-import Kingfisher
 
 class NowPlayingCollectionViewCell: UICollectionViewCell {
     
     @IBOutlet weak var nowPlayingImageView: UIImageView!
     @IBOutlet weak var movieTitleLabel: UILabel!
     
-    
+    //MARK: - Configure Cell
     func configure(with movieTitle: String, with imageLink: String) {
         movieTitleLabel.text = movieTitle
-        
-        let url = URL(string: Api.imdbImageLink + imageLink)
-        let processor = DownsamplingImageProcessor(size: nowPlayingImageView.bounds.size)
-                     
-        nowPlayingImageView.kf.indicatorType = .activity
-        nowPlayingImageView.kf.setImage(
-            with: url,
-            options: [
-                .processor(processor),
-                .scaleFactor(UIScreen.main.scale),
-                .transition(.fade(1)),
-                .cacheOriginalImage
-            ])
+                
+        Helper.setImage(with: Api.imdbImageLink + imageLink, with: nowPlayingImageView)
     }
 }

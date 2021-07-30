@@ -94,10 +94,10 @@ class Service {
         var movieDataList: [MoviesModel] = []
         
         let dateFormatterGet = DateFormatter()
-        dateFormatterGet.dateFormat = "yyyy-MM-dd"
+        dateFormatterGet.dateFormat = Date.dateFormatterGet
         
         let dateFormatterPrint = DateFormatter()
-        dateFormatterPrint.dateFormat = "dd.MM.yy"
+        dateFormatterPrint.dateFormat = Date.dateFormatterPrint
         
         do {
             let decodeData = try decoder.decode(MoviesData.self, from: moviesData)
@@ -123,7 +123,6 @@ class Service {
                     }
                 }
             }
-            
             return movieDataList
             
         } catch {
@@ -137,10 +136,10 @@ class Service {
         let decoder = JSONDecoder()
         
         let dateFormatterGet = DateFormatter()
-        dateFormatterGet.dateFormat = "yyyy-MM-dd"
+        dateFormatterGet.dateFormat = Date.dateFormatterGet
         
         let dateFormatterPrint = DateFormatter()
-        dateFormatterPrint.dateFormat = "dd.MM.yyyy"
+        dateFormatterPrint.dateFormat = Date.dateFormatterPrint
         
         do {
             let decodeData = try decoder.decode(MovieDetailData.self, from: moviesData)

@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import Kingfisher
 
 class MoviesDetailViewController: UIViewController {
     
@@ -27,35 +26,80 @@ class MoviesDetailViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+        configureDelegate()
+        configureDataSource()
+        configureGetService()
+        configureSetImageButton()
+        navigationConfigure()
+    }
+    
+    //MARK: - Configure Delegate
+    func configureDelegate() {
         service.delegate = self
+        similarMoviesCollectionView.delegate = self
+    }
+    
+    //MARK: - Configure DataSource
+    func configureDataSource() {
+        similarMoviesCollectionView.dataSource = self
+    }
+    
+    //MARK: - Configure GetService
+    func configureGetService() {
         service.getMovieDetail(movieiD ?? 0)
         service.getSmilarMovies(movieiD ?? 0)
-        navigationConfigure()
-        
-        similarMoviesCollectionView.dataSource = self
-        similarMoviesCollectionView.delegate = self
-        
+    }
+    
+    //MARK: - Set ButtonImdb
+    func configureSetImageButton() {
         let image = #imageLiteral(resourceName: "ImdbLogo")
         imdbButton.setBackgroundImage(image, for: .normal)
-        
-        imdbButton.addTarget(self, action: "imdbButtonPressed:", for: .touchUpInside)
+        imdbButton.addTarget(self, action: #selector(self.imdbButtonPressed(_:)), for: .touchUpInside)
     }
     
+    //MARK: - ImdbButton Click Event
     @IBAction func imdbButtonPressed(_ sender: UIButton) {
-        guard var imdb = moviesDetail?.imdbId else { return }
-        UIApplication.shared.openURL(URL(string: "https://www.imdb.com/title/" + imdb)!)
+        guard let imdb = moviesDetail?.imdbId else { return }
+        UIApplication.shared.openURL(URL(string: Api.imdbLink + imdb)!)
     }
     
-    @objc func goHomePage() {
-        performSegue(withIdentifier: "goToMoviesList", sender: self)
-    }
-    
+    //MARK: - Configure Navigation
     func navigationConfigure() {
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Home", style: .done, target: self, action: #selector(goHomePage) )
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: Keywords.home, style: .done, target: self, action: #selector(goHomePage) )
+    }
+    
+    //MARK: - Navigation Button Click Event
+    @objc func goHomePage() {
+        performSegue(withIdentifier: Segue.goToMovieList, sender: self)
     }
 }
 
+//MARK: - ConfigureObjects
+extension MoviesDetailViewController {
+    
+    func configure() {
+        movieTitleLabel.text = moviesDetail?.movieTitle
+        movieDescriptionLabel.text = moviesDetail?.description
+        movieAverageLabel.text = moviesDetail?.voteAverage
+        movieReleaseDateLabel.text = moviesDetail?.releaseDate
+        
+        Helper.setImage(with: Api.imdbImageLink + (moviesDetail?.image)!, with: moviesDetailImageView)
+    }
+}
+
+//MARK: - Segue Transfer
+extension MoviesDetailViewController {
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        let detailVc = segue.destination as? MoviesDetailViewController
+        
+        if segue.identifier == Segue.similarMovieDetailSegue {
+        if let cell = sender as? UICollectionViewCell,
+           let indexPath = self.similarMoviesCollectionView.indexPath(for: cell) {
+                detailVc?.movieiD = similarMoviesData[indexPath.row].id
+            }
+        }
+    }
+}
 
 //MARK: - ServiceDelegate
 extension MoviesDetailViewController: ServiceDelegate {
@@ -65,7 +109,6 @@ extension MoviesDetailViewController: ServiceDelegate {
             self.similarMoviesCollectionView.reloadData()
         }
     }
-    
     
     func didUpdateMoviesDetail(_ service: Service, movieModel: MoviesModel) {
         DispatchQueue.main.async {
@@ -85,30 +128,7 @@ extension MoviesDetailViewController: ServiceDelegate {
     func didUpdateMoviesSearch(_ service: Service, movieModel: [MoviesModel]) {}
 }
 
-//MARK: - ConfigureObjects
-extension MoviesDetailViewController {
-    
-    func configure() {
-        movieTitleLabel.text = moviesDetail?.movieTitle
-        movieDescriptionLabel.text = moviesDetail?.description
-        movieAverageLabel.text = moviesDetail?.voteAverage
-        movieReleaseDateLabel.text = moviesDetail?.releaseDate
-        
-        
-        let url = URL(string: Api.imdbImageLink + (moviesDetail?.image)!)
-        let processor = DownsamplingImageProcessor(size: moviesDetailImageView.bounds.size)
-        
-        moviesDetailImageView.kf.indicatorType = .activity
-        moviesDetailImageView.kf.setImage(
-            with: url,
-            options: [
-                .processor(processor),
-                .scaleFactor(UIScreen.main.scale),
-                .transition(.fade(1)),
-                .cacheOriginalImage
-            ])
-    }
-}
+
 
 //MARK: - SmilarMoviesCollectionDataSource
 extension MoviesDetailViewController: UICollectionViewDataSource {
@@ -119,7 +139,7 @@ extension MoviesDetailViewController: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         var cell = UICollectionViewCell()
         
-        if let movieCell = collectionView.dequeueReusableCell(withReuseIdentifier: "SimilarMoviesCell", for: indexPath) as? SimilarMoviesCollectionViewCell {
+        if let movieCell = collectionView.dequeueReusableCell(withReuseIdentifier: Cell.similarMoviesCell, for: indexPath) as? SimilarMoviesCollectionViewCell {
             
             movieCell.configure(with: similarMoviesData[indexPath.row].movieTitle!, with: similarMoviesData[indexPath.row].image!)
             
@@ -128,11 +148,6 @@ extension MoviesDetailViewController: UICollectionViewDataSource {
         
         return cell
     }
-}
-
-//MARK: - SmilarMoviesCollectionDelegate
-extension MoviesDetailViewController: UICollectionViewDelegate {
-   
 }
 
 //MARK: - SmilarCollectionViewDelegateFlowLayout
@@ -156,20 +171,4 @@ extension MoviesDetailViewController: UICollectionViewDelegateFlowLayout {
     }
 }
 
-//MARK: - Segue Transfer
-extension MoviesDetailViewController {
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        let detailVc = segue.destination as? MoviesDetailViewController
-        
-        if segue.identifier == "similarMovieDetailSegue" {
-        if let cell = sender as? UICollectionViewCell,
-           let indexPath = self.similarMoviesCollectionView.indexPath(for: cell) {
-                detailVc?.movieiD = similarMoviesData[indexPath.row].id
-            }
-        } else {
-            
-        }
-        
-        
-    }
-}
+

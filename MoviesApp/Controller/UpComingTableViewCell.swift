@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import Kingfisher
 
 class UpComingTableViewCell: UITableViewCell {
 
@@ -15,25 +14,12 @@ class UpComingTableViewCell: UITableViewCell {
     @IBOutlet weak var upComingOverviewLabel: UILabel!
     @IBOutlet weak var upComingDateLabel: UILabel!
     
-    
+    //MARK: - Configure Cell
     func configure(with movieTitle: String, with movieDescription: String, with movieReleaseDate: String, with movieImageLink: String) {
         upComingMovieTitleLabel.text = movieTitle
         upComingOverviewLabel.text = movieDescription
         upComingDateLabel.text = movieReleaseDate
         
-        let url = URL(string: Api.imdbImageLink + movieImageLink)
-        let processor = DownsamplingImageProcessor(size: upComingImageView.bounds.size)
-            |> RoundCornerImageProcessor(cornerRadius: 5)
-        upComingImageView.kf.indicatorType = .activity
-        upComingImageView.kf.setImage(
-            with: url,
-            options: [
-                .processor(processor),
-                .scaleFactor(UIScreen.main.scale),
-                .transition(.fade(1)),
-                .cacheOriginalImage
-            ])
-    }
-    @IBAction func detailMovieButtonPressed(_ sender: UIButton) {
+        Helper.setImage(with: Api.imdbImageLink + movieImageLink, with: upComingImageView, with: 5)
     }
 }
