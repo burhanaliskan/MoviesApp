@@ -175,7 +175,7 @@ extension MoviesListViewController: UICollectionViewDataSource {
         
         if let movieCell = collectionView.dequeueReusableCell(withReuseIdentifier: Cell.nowPlayinMovieCell, for: indexPath) as? NowPlayingCollectionViewCell {
             
-            movieCell.configure(with: moviesNowPlayingDataList[indexPath.row].movieTitle!, with: moviesNowPlayingDataList[indexPath.row].image!)
+            movieCell.configure(with: moviesNowPlayingDataList[indexPath.row].movieTitle!, with: moviesNowPlayingDataList[indexPath.row].image ?? "")
             
             cell = movieCell
         }
@@ -238,7 +238,7 @@ extension MoviesListViewController: UITableViewDataSource {
         if upComingTableView == tableView {
             if let movieCell = upComingTableView.dequeueReusableCell(withIdentifier: Cell.upComingMovieTableViewCell, for: indexPath) as? UpComingTableViewCell {
                 
-                movieCell.configure(with: moviesUpComingDataList[indexPath.row].movieTitle!, with: moviesUpComingDataList[indexPath.row].description!, with: moviesUpComingDataList[indexPath.row].releaseDate!, with: moviesUpComingDataList[indexPath.row].image!)
+                movieCell.configure(with: moviesUpComingDataList[indexPath.row].movieTitle!, with: moviesUpComingDataList[indexPath.row].description!, with: moviesUpComingDataList[indexPath.row].releaseDate!, with: moviesUpComingDataList[indexPath.row].image ?? "")
                 
                 cell = movieCell
             }
