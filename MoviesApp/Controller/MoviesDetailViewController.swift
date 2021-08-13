@@ -77,7 +77,7 @@ class MoviesDetailViewController: UIViewController {
     
     //MARK: - Navigation Button Click Event
     @objc func goHomePage() {
-        performSegue(withIdentifier: Segue.goToMovieList, sender: self)
+        self.navigationController?.popToRootViewController(animated: true)
     }
 }
 

@@ -18,7 +18,6 @@ enum Segue {
     static let searchBar = "searchBarSegue"
     static let sliderCollection = "sliderCollectionSegue"
     static let tableView = "tableViewSegue"
-    static let goToMovieList = "goToMoviesList"
     static let similarMovieDetailSegue = "similarMovieDetailSegue"
 }
 

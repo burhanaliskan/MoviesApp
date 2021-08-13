@@ -31,15 +31,19 @@ class MoviesListViewController: UIViewController {
     var timer = Timer()
     var counter = 0
     var index = 0
+
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         configureDelegate()
         configureDataSource()
-        configureGetService()
-
         pageView.currentPage = 0
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        configureGetService()
     }
     
     //MARK: - Configure Delegates
