@@ -9,11 +9,6 @@ import Foundation
 import Alamofire
 
 protocol ServiceDelegate {
-    func didUpdateMoviesNowPlaying(_ service: Service, movieModel: [MoviesModel])
-    func didUpdateMoviesUpComing(_ service: Service, movieModel: [MoviesModel])
-    func didUpdateMoviesSearch(_ service: Service, movieModel: [MoviesModel])
-    func didUpdateMoviesDetail(_ service: Service, movieModel: MoviesModel)
-    func didUpdateMoviesSimilar(_ service: Service, movieModel: [MoviesModel])
     func didFailWithError(error: Error)
 }
 
@@ -24,33 +19,32 @@ class Service {
     var delegate: ServiceDelegate?
     
     //MARK: - GetNowPlaying Movies
-    func getNowPlayingMovies() {
+    func getNowPlayingMovies(completion: @escaping(MoviesData) -> Void) {
         let url = baseUrl + "/movie/now_playing?api_key=" + Api.apiKey
         AF.request(url, method: .get, parameters: nil, encoding: URLEncoding.default, headers: nil, interceptor: nil).response {
             (responseData) in
             guard let data = responseData.data else {return}
             
             guard let moviesNowPlaying = self.parseJsonCollection(data) else {return}
-            self.delegate?.didUpdateMoviesNowPlaying(self, movieModel: moviesNowPlaying)
+            completion(moviesNowPlaying)
         }
     }
     
     //MARK: - GetUpComing Movies
-    func getUpComingMovies() {
+    func getUpComingMovies(completion: @escaping(MoviesData) -> Void) {
         let url = baseUrl + "/movie/upcoming?api_key=" + Api.apiKey
         AF.request(url, method: .get, parameters: nil, encoding: URLEncoding.default, headers: nil, interceptor: nil).response {
             (responseData) in
             guard let data = responseData.data else {return}
             
             guard let moviesUpComing = self.parseJsonCollection(data) else {return}
-            self.delegate?.didUpdateMoviesUpComing(self, movieModel: moviesUpComing)
+            completion(moviesUpComing)
         }
-        
     }
     
     
     //MARK: - getSearchMovies
-    func getSearchMovies(_ query: String) {
+    func getSearchMovies(_ query: String, completion: @escaping(MoviesData) -> Void) {
         
         if query.count >= 2 || query.isEmpty {
             let url = baseUrl + "/search/movie?query=\(query)&api_key=" + Api.apiKey
@@ -59,39 +53,38 @@ class Service {
                 guard let data = responseData.data else {return}
                 
                 guard let moviesSearch = self.parseJsonCollection(data) else {return}
-                self.delegate?.didUpdateMoviesSearch(self, movieModel: moviesSearch)
+                completion(moviesSearch)
             }
         }
     }
     
     //MARK: - getMovieDeteail
-    func getMovieDetail(_ movieId: Int) {
+    func getMovieDetail(_ movieId: Int, completion: @escaping(Movies) -> Void) {
         let url = baseUrl + "/movie/" + String(movieId)  + "?api_key=" + Api.apiKey
         AF.request(url, method: .get, parameters: nil, encoding: URLEncoding.default, headers: nil, interceptor: nil).response {
             (responseData) in
             guard let data = responseData.data else {return}
             
             guard let moviesDetail = self.parseJsonDetail(data) else {return}
-            self.delegate?.didUpdateMoviesDetail(self, movieModel: moviesDetail)
+            completion(moviesDetail)
         }
     }
     
     //MARK: - getSmilarMovies
-    func getSmilarMovies(_ movieId: Int) {
+    func getSmilarMovies(_ movieId: Int, completion: @escaping(MoviesData) -> Void) {
         let url = baseUrl + "/movie/" + String(movieId)  + "/similar?api_key=" + Api.apiKey
         AF.request(url, method: .get, parameters: nil, encoding: URLEncoding.default, headers: nil, interceptor: nil).response {
             (responseData) in
             guard let data = responseData.data else {return}
             
             guard let moviesSmilar = self.parseJsonCollection(data) else {return}
-            self.delegate?.didUpdateMoviesSimilar(self, movieModel: moviesSmilar)
+            completion(moviesSmilar)
         }
     }
     
     //MARK: - ParseJsonCollection
-    func parseJsonCollection(_ moviesData: Data) -> [MoviesModel]? {
+    func parseJsonCollection(_ moviesData: Data) -> MoviesData? {
         let decoder = JSONDecoder()
-        var movieDataList: [MoviesModel] = []
         
         let dateFormatterGet = DateFormatter()
         dateFormatterGet.dateFormat = Date.dateFormatterGet
@@ -102,28 +95,8 @@ class Service {
         do {
             let decodeData = try decoder.decode(MoviesData.self, from: moviesData)
             
-            if let data = decodeData.results {
-                if decodeData.results!.count > 0 {
-                    for index in 0 ... data.count - 1 {
-                        
-                        let id = data[index].id
-                        let imdbId = data[index].imdb_id
-                        let movieTitle = data[index].title
-                        let description = data[index].overview
-                        let image = data[index].backdrop_path
-                        var releaseDate = ""
-                        if let date = dateFormatterGet.date(from: (data[index].release_date ?? "")) {
-                            releaseDate = dateFormatterPrint.string(from: date)
-                        }
-                        let voteAverage = String(format: "%.1f", data[index].vote_average ?? "")
-                        
-                        let movies = MoviesModel(id: id, imdbId: imdbId, movieTitle: movieTitle, description: description, image: image, releaseDate: releaseDate, voteAverage: voteAverage)
-                        
-                        movieDataList.append(movies)
-                    }
-                }
-            }
-            return movieDataList
+
+            return decodeData
             
         } catch {
             delegate?.didFailWithError(error: error)
@@ -132,7 +105,7 @@ class Service {
     }
     
     //MARK: - ParseJsonDetail
-    func parseJsonDetail(_ moviesData: Data) -> MoviesModel? {
+    func parseJsonDetail(_ moviesData: Data) -> Movies? {
         let decoder = JSONDecoder()
         
         let dateFormatterGet = DateFormatter()
@@ -142,22 +115,9 @@ class Service {
         dateFormatterPrint.dateFormat = Date.dateFormatterPrint
         
         do {
-            let decodeData = try decoder.decode(MovieDetailData.self, from: moviesData)
+            let decodeData = try decoder.decode(Movies.self, from: moviesData)
 
-            let id = decodeData.id
-            let imdbId = decodeData.imdb_id
-            let movieTitle = decodeData.title
-            let description = decodeData.overview
-            let image = decodeData.backdrop_path
-            var releaseDate = ""
-            if let date = dateFormatterGet.date(from: (decodeData.release_date ?? "")) {
-                releaseDate = dateFormatterPrint.string(from: date)
-            }
-            let voteAverage = String(format: "%.1f", decodeData.vote_average ?? "")
-            
-            let movies = MoviesModel(id: id, imdbId: imdbId, movieTitle: movieTitle, description: description, image: image, releaseDate: releaseDate, voteAverage: voteAverage)
-            
-            return movies
+            return decodeData
             
         } catch {
             delegate?.didFailWithError(error: error)

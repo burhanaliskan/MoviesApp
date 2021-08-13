@@ -24,9 +24,9 @@ class MoviesListViewController: UIViewController {
     
     let service = Service()
     
-    var moviesNowPlayingDataList: [MoviesModel] = []
-    var moviesUpComingDataList: [MoviesModel] = []
-    var moviesSearchDataList: [MoviesModel] = []
+    var moviesNowPlayingDataList: MoviesData?
+    var moviesUpComingDataList: MoviesData?
+    var moviesSearchDataList: MoviesData?
     
     var timer = Timer()
     var counter = 0
@@ -60,13 +60,25 @@ class MoviesListViewController: UIViewController {
     
     //MARK: - Configure GetService
     func configureGetService() {
-        service.getNowPlayingMovies()
-        service.getUpComingMovies()
+        service.getNowPlayingMovies { nowPlayingMovies in
+            self.moviesNowPlayingDataList = nowPlayingMovies
+            if  nowPlayingMovies.results?.count ?? 0 > 0 {
+                self.pageView.numberOfPages = nowPlayingMovies.results?.count ?? 0
+                self.sliderCollectionView.reloadData()
+                self.timer = Timer.scheduledTimer(timeInterval: 2.0, target: self, selector: #selector(self.changeImage), userInfo: nil, repeats: true)
+            }
+        }
+        service.getUpComingMovies { upComingMovies in
+            self.moviesUpComingDataList = upComingMovies
+            if  upComingMovies.results?.count ?? 0 > 0 {
+                self.upComingTableView.reloadData()
+            }
+        }
     }
     
     //MARK: - Slider Change Image
     @objc func changeImage() {
-        if counter < moviesNowPlayingDataList.count {
+        if counter < moviesNowPlayingDataList?.results?.count ?? 0 {
             let index = IndexPath.init(item: counter, section: 0)
             self.sliderCollectionView.scrollToItem(at: index, at: .centeredHorizontally, animated: true)
             pageView.currentPage = counter
@@ -87,11 +99,11 @@ extension MoviesListViewController {
         let detailVc = segue.destination as? MoviesDetailViewController
         
         if segue.identifier == Segue.searchBar {
-            detailVc?.movieiD = moviesSearchDataList[index].id
+            detailVc?.movieiD = moviesSearchDataList?.results?[index].id
         } else if segue.identifier == Segue.sliderCollection {
-            detailVc?.movieiD = moviesNowPlayingDataList[index].id
+            detailVc?.movieiD = moviesNowPlayingDataList?.results?[index].id
         } else if segue.identifier == Segue.tableView {
-            detailVc?.movieiD = moviesUpComingDataList[index].id
+            detailVc?.movieiD = moviesUpComingDataList?.results?[index].id
         }
     }
 }
@@ -100,27 +112,21 @@ extension MoviesListViewController {
 //MARK: - Service Delegate
 extension MoviesListViewController: ServiceDelegate {
     
-    func didUpdateMoviesUpComing(_ service: Service, movieModel: [MoviesModel]) {
-        DispatchQueue.main.async {
-            self.moviesUpComingDataList = movieModel
-            self.upComingTableView.reloadData()
-        }
+    func didFailWithError(error: Error) {
+        print(error)
     }
+        
+}
+
+//MARK: - SearchBarDelegate
+extension MoviesListViewController: UISearchBarDelegate {
     
-    func didUpdateMoviesNowPlaying(_ service: Service, movieModel: [MoviesModel]) {
-        DispatchQueue.main.async {
-            self.moviesNowPlayingDataList = movieModel
-            self.pageView.numberOfPages = movieModel.count
-            self.sliderCollectionView.reloadData()
-            self.timer = Timer.scheduledTimer(timeInterval: 2.0, target: self, selector: #selector(self.changeImage), userInfo: nil, repeats: true)
-        }
-    }
-    
-    func didUpdateMoviesSearch(_ service: Service, movieModel: [MoviesModel]) {
-        DispatchQueue.main.async {
-            self.moviesSearchDataList = movieModel
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        guard let searchBarText = searchBar.text else {return}
+        service.getSearchMovies(searchBarText) { searchMovies in
+            self.moviesSearchDataList = searchMovies
             
-            if movieModel.count > 0 {
+            if searchMovies.results?.count ?? 0 > 0 {
                 self.searchBarTable.reloadData()
                 self.searchBarTableView.isHidden = false
                 self.viewSliderCollection.isHidden = true
@@ -133,25 +139,21 @@ extension MoviesListViewController: ServiceDelegate {
         }
     }
     
-    func didFailWithError(error: Error) {
-        print(error)
-    }
-    
-    func didUpdateMoviesDetail(_ service: Service, movieModel: MoviesModel) {}
-    
-    func didUpdateMoviesSimilar(_ service: Service, movieModel: [MoviesModel]) {}
-}
-
-//MARK: - SearchBarDelegate
-extension MoviesListViewController: UISearchBarDelegate {
-    
-    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-        guard let searchBarText = searchBar.text else {return}
-        service.getSearchMovies(searchBarText)
-    }
-    
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        service.getSearchMovies(searchText)
+        service.getSearchMovies(searchText) { searchMovies in
+            self.moviesSearchDataList = searchMovies
+            
+            if searchMovies.results?.count ?? 0 > 0 {
+                self.searchBarTable.reloadData()
+                self.searchBarTableView.isHidden = false
+                self.viewSliderCollection.isHidden = true
+                self.viewTable.alpha = 0.5
+            } else {
+                self.searchBarTableView.isHidden = true
+                self.viewSliderCollection.isHidden = false
+                self.viewTable.alpha = 1.0
+            }
+        }
     }
 }
 
@@ -167,7 +169,7 @@ extension MoviesListViewController: UICollectionViewDelegate {
 extension MoviesListViewController: UICollectionViewDataSource {
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        moviesNowPlayingDataList.count
+        moviesNowPlayingDataList?.results?.count ?? 0
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -175,7 +177,7 @@ extension MoviesListViewController: UICollectionViewDataSource {
         
         if let movieCell = collectionView.dequeueReusableCell(withReuseIdentifier: Cell.nowPlayinMovieCell, for: indexPath) as? NowPlayingCollectionViewCell {
             
-            movieCell.configure(with: moviesNowPlayingDataList[indexPath.row].movieTitle!, with: moviesNowPlayingDataList[indexPath.row].image ?? "")
+            movieCell.configure(with: moviesNowPlayingDataList?.results?[indexPath.row].title ?? "", with: moviesNowPlayingDataList?.results?[indexPath.row].backdrop_path ?? "")
             
             cell = movieCell
         }
@@ -225,9 +227,9 @@ extension MoviesListViewController: UITableViewDataSource {
         var count = 0
         
         if upComingTableView == tableView {
-            count = moviesNowPlayingDataList.count
+            count = moviesNowPlayingDataList?.results?.count ?? 0
         } else {
-            count = moviesSearchDataList.count
+            count = moviesSearchDataList?.results?.count ?? 0
         }
         return count
     }
@@ -238,13 +240,13 @@ extension MoviesListViewController: UITableViewDataSource {
         if upComingTableView == tableView {
             if let movieCell = upComingTableView.dequeueReusableCell(withIdentifier: Cell.upComingMovieTableViewCell, for: indexPath) as? UpComingTableViewCell {
                 
-                movieCell.configure(with: moviesUpComingDataList[indexPath.row].movieTitle!, with: moviesUpComingDataList[indexPath.row].description!, with: moviesUpComingDataList[indexPath.row].releaseDate!, with: moviesUpComingDataList[indexPath.row].image ?? "")
+                movieCell.configure(with: moviesUpComingDataList?.results?[indexPath.row].title ?? "", with: moviesUpComingDataList?.results?[indexPath.row].overview ?? "", with: moviesUpComingDataList?.results?[indexPath.row].release_date ?? "", with: moviesUpComingDataList?.results?[indexPath.row].backdrop_path ?? "")
                 
                 cell = movieCell
             }
         } else {
             if let movieSearchCell = searchBarTable.dequeueReusableCell(withIdentifier: Cell.searchBarMovieTableViewCell, for: indexPath) as? SearchBarTableViewCell {
-                movieSearchCell.configure(with: moviesSearchDataList[indexPath.row].movieTitle!)
+                movieSearchCell.configure(with: moviesSearchDataList?.results?[indexPath.row].title ?? "")
                 
                 cell = movieSearchCell
             }

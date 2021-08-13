@@ -20,8 +20,8 @@ class MoviesDetailViewController: UIViewController {
     
     var movieiD: Int?
     var service = Service()
-    var moviesDetail: MoviesModel?
-    var similarMoviesData: [MoviesModel] = []
+    var moviesDetail: Movies?
+    var similarMoviesData: MoviesData?
     var index = 0
     
     override func viewDidLoad() {
@@ -46,8 +46,15 @@ class MoviesDetailViewController: UIViewController {
     
     //MARK: - Configure GetService
     func configureGetService() {
-        service.getMovieDetail(movieiD ?? 0)
-        service.getSmilarMovies(movieiD ?? 0)
+        service.getMovieDetail(movieiD ?? 0) { detailMovies in
+            self.moviesDetail = detailMovies
+            self.configure()
+        }
+//        service.getSmilarMovies(movieiD ?? 0)
+        service.getSmilarMovies(movieiD ?? 0) { similarMovies in
+            self.similarMoviesData = similarMovies
+            self.similarMoviesCollectionView.reloadData()
+        }
     }
     
     //MARK: - Set ButtonImdb
@@ -59,7 +66,7 @@ class MoviesDetailViewController: UIViewController {
     
     //MARK: - ImdbButton Click Event
     @IBAction func imdbButtonPressed(_ sender: UIButton) {
-        guard let imdb = moviesDetail?.imdbId else { return }
+        guard let imdb = moviesDetail?.imdb_id else { return }
         UIApplication.shared.openURL(URL(string: Api.imdbLink + imdb)!)
     }
     
@@ -78,12 +85,20 @@ class MoviesDetailViewController: UIViewController {
 extension MoviesDetailViewController {
     
     func configure() {
-        movieTitleLabel.text = moviesDetail?.movieTitle
-        movieDescriptionLabel.text = moviesDetail?.description
-        movieAverageLabel.text = moviesDetail?.voteAverage
-        movieReleaseDateLabel.text = moviesDetail?.releaseDate
         
-        Helper.setImage(with: Api.imdbImageLink + (moviesDetail?.image)!, with: moviesDetailImageView)
+        let dateFormatterGet = DateFormatter()
+        dateFormatterGet.dateFormat = Date.dateFormatterGet
+        
+        let dateFormatterPrint = DateFormatter()
+        dateFormatterPrint.dateFormat = Date.dateFormatterPrint
+        
+        movieTitleLabel.text = moviesDetail?.title
+        movieDescriptionLabel.text = moviesDetail?.overview
+        movieAverageLabel.text = String(format: "%.1f", moviesDetail?.vote_average as! CVarArg)
+        if let date = dateFormatterGet.date(from: (moviesDetail?.release_date ?? "")) {
+            movieReleaseDateLabel.text = dateFormatterPrint.string(from: date)
+        }
+        Helper.setImage(with: Api.imdbImageLink + (moviesDetail?.backdrop_path ?? ""), with: moviesDetailImageView)
     }
 }
 
@@ -92,10 +107,11 @@ extension MoviesDetailViewController {
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         let detailVc = segue.destination as? MoviesDetailViewController
         
+        
         if segue.identifier == Segue.similarMovieDetailSegue {
         if let cell = sender as? UICollectionViewCell,
            let indexPath = self.similarMoviesCollectionView.indexPath(for: cell) {
-                detailVc?.movieiD = similarMoviesData[indexPath.row].id
+            detailVc?.movieiD = similarMoviesData?.results?[indexPath.row].id
             }
         }
     }
@@ -103,37 +119,17 @@ extension MoviesDetailViewController {
 
 //MARK: - ServiceDelegate
 extension MoviesDetailViewController: ServiceDelegate {
-    func didUpdateMoviesSimilar(_ service: Service, movieModel: [MoviesModel]) {
-        DispatchQueue.main.async {
-            self.similarMoviesData = movieModel
-            self.similarMoviesCollectionView.reloadData()
-        }
-    }
-    
-    func didUpdateMoviesDetail(_ service: Service, movieModel: MoviesModel) {
-        DispatchQueue.main.async {
-            self.moviesDetail = movieModel
-            self.configure()
-        }
-    }
     
     func didFailWithError(error: Error) {
         print(error)
     }
-    
-    func didUpdateMoviesNowPlaying(_ service: Service, movieModel: [MoviesModel]) {}
-    
-    func didUpdateMoviesUpComing(_ service: Service, movieModel: [MoviesModel]) {}
-    
-    func didUpdateMoviesSearch(_ service: Service, movieModel: [MoviesModel]) {}
 }
-
 
 
 //MARK: - SmilarMoviesCollectionDataSource
 extension MoviesDetailViewController: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        similarMoviesData.count
+        similarMoviesData?.results?.count ?? 0
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -141,7 +137,7 @@ extension MoviesDetailViewController: UICollectionViewDataSource {
         
         if let movieCell = collectionView.dequeueReusableCell(withReuseIdentifier: Cell.similarMoviesCell, for: indexPath) as? SimilarMoviesCollectionViewCell {
             
-            movieCell.configure(with: similarMoviesData[indexPath.row].movieTitle!, with: similarMoviesData[indexPath.row].image!)
+            movieCell.configure(with: similarMoviesData?.results?[indexPath.row].title ?? "", with: similarMoviesData?.results?[indexPath.row].backdrop_path ?? "")
             
             cell = movieCell
         }
