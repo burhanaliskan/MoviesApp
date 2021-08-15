@@ -23,10 +23,17 @@ class Service {
         let url = baseUrl + "/movie/now_playing?api_key=" + Api.apiKey
         AF.request(url, method: .get, parameters: nil, encoding: URLEncoding.default, headers: nil, interceptor: nil).response {
             (responseData) in
-            guard let data = responseData.data else {return}
             
-            guard let moviesNowPlaying = self.parseJsonCollection(data) else {return}
-            completion(moviesNowPlaying)
+            if responseData.error != nil {
+                print(responseData.error)
+            } else {
+                guard let data = responseData.data else {return}
+                
+                
+                
+                guard let moviesNowPlaying = self.parseJsonCollection(data) else {return}
+                completion(moviesNowPlaying)
+            }
         }
     }
     
@@ -35,10 +42,17 @@ class Service {
         let url = baseUrl + "/movie/upcoming?api_key=" + Api.apiKey
         AF.request(url, method: .get, parameters: nil, encoding: URLEncoding.default, headers: nil, interceptor: nil).response {
             (responseData) in
-            guard let data = responseData.data else {return}
             
-            guard let moviesUpComing = self.parseJsonCollection(data) else {return}
-            completion(moviesUpComing)
+            if responseData.error != nil {
+                print(responseData.error)
+            } else {
+                guard let data = responseData.data else {return}
+                
+                guard let moviesUpComing = self.parseJsonCollection(data) else {return}
+                completion(moviesUpComing)
+            }
+            
+            
         }
     }
     
@@ -50,10 +64,17 @@ class Service {
             let url = baseUrl + "/search/movie?query=\(query)&api_key=" + Api.apiKey
             AF.request(url, method: .get, parameters: nil, encoding: URLEncoding.default, headers: nil, interceptor: nil).response {
                 (responseData) in
-                guard let data = responseData.data else {return}
                 
-                guard let moviesSearch = self.parseJsonCollection(data) else {return}
-                completion(moviesSearch)
+                if responseData.error != nil {
+                    print(responseData.error)
+                } else {
+                    guard let data = responseData.data else {return}
+                    
+                    guard let moviesSearch = self.parseJsonCollection(data) else {return}
+                    completion(moviesSearch)
+                }
+                
+                
             }
         }
     }
@@ -63,10 +84,16 @@ class Service {
         let url = baseUrl + "/movie/" + String(movieId)  + "?api_key=" + Api.apiKey
         AF.request(url, method: .get, parameters: nil, encoding: URLEncoding.default, headers: nil, interceptor: nil).response {
             (responseData) in
-            guard let data = responseData.data else {return}
             
-            guard let moviesDetail = self.parseJsonDetail(data) else {return}
-            completion(moviesDetail)
+            if responseData.error != nil {
+                print(responseData.error)
+            } else {
+                guard let data = responseData.data else {return}
+                
+                guard let moviesDetail = self.parseJsonDetail(data) else {return}
+                completion(moviesDetail)
+            }
+            
         }
     }
     
@@ -75,10 +102,16 @@ class Service {
         let url = baseUrl + "/movie/" + String(movieId)  + "/similar?api_key=" + Api.apiKey
         AF.request(url, method: .get, parameters: nil, encoding: URLEncoding.default, headers: nil, interceptor: nil).response {
             (responseData) in
-            guard let data = responseData.data else {return}
             
-            guard let moviesSmilar = self.parseJsonCollection(data) else {return}
-            completion(moviesSmilar)
+            if responseData.error != nil {
+                print(responseData.error)
+            } else {
+                guard let data = responseData.data else {return}
+                
+                guard let moviesSmilar = self.parseJsonCollection(data) else {return}
+                completion(moviesSmilar)
+            }
+            
         }
     }
     
@@ -95,7 +128,7 @@ class Service {
         do {
             let decodeData = try decoder.decode(MoviesData.self, from: moviesData)
             
-
+            
             return decodeData
             
         } catch {
@@ -116,7 +149,7 @@ class Service {
         
         do {
             let decodeData = try decoder.decode(Movies.self, from: moviesData)
-
+            
             return decodeData
             
         } catch {

@@ -101,7 +101,7 @@ class MoviesListViewController: UIViewController {
 extension MoviesListViewController {
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         let detailVc = segue.destination as? MoviesDetailViewController
-        
+                
         if segue.identifier == Segue.searchBar {
             detailVc?.movieiD = moviesSearchDataList?.results?[index].id
         } else if segue.identifier == Segue.sliderCollection {
@@ -215,6 +215,7 @@ extension MoviesListViewController: UICollectionViewDelegateFlowLayout {
 extension MoviesListViewController: UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+                
         index = indexPath.row
         if upComingTableView == tableView {
             performSegue(withIdentifier: Segue.tableView, sender: self)
